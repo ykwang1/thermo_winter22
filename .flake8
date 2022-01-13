@@ -1,0 +1,4 @@
+# this file changes some of the linting settings because the defaults are weird
+
+[flake8]
+max-line-length=110
