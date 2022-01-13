@@ -1,21 +1,23 @@
 import numpy as np
-import tkinter as tk  # simple gui package for python
+import tkinter as tk           # simple gui package for python
 
 
-class particle(): #the balls bouncing around the box
-    def __init__(self, xsize, ysize, init_v=5, rad=3):
+class particle():
+    def __init__(self, size, init_v=5, rad=3):
         """Initialise the particles
 
         Parameters
         ----------
+        size : int
+            Size of the box
         init_v : int, optional
             Initial velocity for particles, by default 5
         rad : int, optional
             Radius of each particle, by default 3
         """
         # choose random x and y positions within the grid (padded by radius of particles)
-        self.x = np.random.random(0 + rad, xsize - rad)
-        self.y = np.random.random(0 + rad, ysize - rad)
+        self.x = np.random.random(0 + rad, size - rad)
+        self.y = np.random.random(0 + rad, size - rad)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
         self.vx = np.random.random(0, init_v)
@@ -38,24 +40,28 @@ class particle(): #the balls bouncing around the box
 
 
 class Simulation():  # this is where we will make them interact
-    def __init__(self, N, E, xsize, ysize, rad):
-        """Initialize the the simulation
+    def __init__(self, N, E, size, rad):
+        """Simulation class initialisation. This class handles the entire particle
+        in a box thing.
 
         Parameters
-        -----
-        N: 'int'
+        ----------
+        N : `int`
             Total number of particles
-        E: 'float'
-            Total energy of the system
-        xsize: i
-
+        E : `int`
+            Kinetic energy to start with
+        size : `int`
+            Size of the box
+        rad : `int`
+            Radius of the particles
         """
         self.N = N
         self.E = E
-        self.xsize = xsize # wall boundary x 
-        self.ysize = ysize # wall boundary y
+        self.size = size
         self.rad = rad
-        self.particles = [particle(xsize, ysize, E, rad) for _ in range(N)] # initialize all particle classes
+
+        # initialise N particle classes
+        self.particles = [particle(size, E, rad) for _ in range(N)]
 
         self.canvas = None
         self.root = None
@@ -66,12 +72,11 @@ class Simulation():  # this is where we will make them interact
         self.root = tk.Tk()
         self.root.title("Ball Bouncer")
         self.root.resizable(False, False)
-        self.canvas = tk.Canvas(self.root, width = self.xsize, height = self.ysize)  #object that can plot things?      
+        self.canvas = tk.Canvas(self.root, width = self.xsize, height = self.ysize)
         raise NotImplementedError
 
-    def _draw_circle(self, particle): #center coordinates, radius
-
-    
+    def _draw_circle(self, particle):
+        # center coordinates, radius
         x0 = x - r
         y0 = y - r
         x1 = x + r
@@ -80,19 +85,15 @@ class Simulation():  # this is where we will make them interact
 
     def visualize(self):
         for p in self.particles:
-            _draw_circle(p)
+            self._draw_circle(p)
         raise NotImplementedError
 
     def resolve_particle_collisions(self):
-
-        # tom is working here
-
         raise NotImplementedError
 
     def resolve_wall_collisions(self):
         # check whether each particle hits the wall
         # for each collider reflect its velocity (account for ones that hit both walls)
-
         raise NotImplementedError
 
     def run_simulation(self, steps=1000):
