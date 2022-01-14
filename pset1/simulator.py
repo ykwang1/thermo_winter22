@@ -1,5 +1,6 @@
 import numpy as np
 import tkinter as tk           # simple gui package for python
+import matplotlib.pyplot as plt
 
 
 class particle():
@@ -74,7 +75,7 @@ class Simulation():  # this is where we will make them interact
 
         self.canvas = None
         self.root = None
-
+        
         self._init_visualization()
 
     def _init_visualization(self):
@@ -121,6 +122,22 @@ class Simulation():  # this is where we will make them interact
 
             # 3. resolve any particle collisions and transfer momentum
             self.resolve_particle_collisions()
+
+    def plot_snapshot(self):
+        fig, ax = plt.subplots(figsize=(10, 10))
+
+        # plot the box
+        ax.plot([0, 0], [0, self.size], color="black", lw=3)
+        ax.plot([self.size, self.size], [0, self.size], color="black", lw=3)
+        ax.plot([0, self.size], [0, 0], color="black", lw=3)
+        ax.plot([0, self.size], [self.size, self.size], color="black", lw=3)
+
+        # add the particle
+        ax.scatter([particle.x for particle in self.particles], [particle.y for particle in self.particles])
+
+        ax.axis("off")
+
+        plt.show()
 
     def get_velocities(self):
         raise NotImplementedError
