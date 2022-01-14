@@ -123,7 +123,10 @@ class Simulation():  # this is where we will make them interact
         y0 = particle.y - particle.radius
         x1 = particle.x + particle.radius
         y1 = particle.y + particle.radius
-        return self.canvas.create_oval(x0, y0, x1, y1, fill='black', outline='black')
+
+        colours = ["black", "red", "blue", "green"]
+
+        return self.canvas.create_oval(x0, y0, x1, y1, fill=np.random.choice(colours), outline='black')
 
     def _move_particle(self, particle):
         xx = particle.x + particle.vx
@@ -133,13 +136,35 @@ class Simulation():  # this is where we will make them interact
         self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
 
     def resolve_particle_collisions(self):
+        # make a set of particles that haven't collided yet
         not_yet_collided = set(self.particles[:])
+
+        # go through every single particle
         for p1 in self.particles:
-            not_yet_collided.remove(p1)
+            # we're handling its collisions now so remove it from the set
+            not_yet_collided.discard(p1)
+
+            # go through all potential colliders and check if they are colliding
             for p2 in list(not_yet_collided):
                 if p1.colliding(p2):
+                    # handle the collision!
                     print(p1.pid, p2.pid, "are colliding")
-                    not_yet_collided.remove(p2)
+                    not_yet_collided.discard(p2)
+
+                    v1 = np.array([p1.vx, p1.vy])
+                    v2 = np.array([p2.vx, p2.vy])
+                    pos1 = np.array(p1.x, p1.y)
+                    pos2 = np.array(p2.x, p2.y)
+                    M = p1.mass + p2.mass
+
+                    new_v1 = v1 - 2 * p2.mass / M * np.dot(v1 - v2, pos1 - pos2) / np.linalg.norm(pos1 - pos2)**2 * (pos1 - pos2)
+                    new_v2 = v2 - 2 * p1.mass / M * np.dot(v2 - v1, pos2 - pos1) / np.linalg.norm(pos2 - pos1)**2 * (pos2 - pos1)
+
+                    p1.update_vx(new_v1[0])
+                    p1.update_vy(new_v1[1])
+                    p2.update_vx(new_v2[0])
+                    p2.update_vy(new_v2[1])
+
                     break
 
     def resolve_wall_collisions(self):
