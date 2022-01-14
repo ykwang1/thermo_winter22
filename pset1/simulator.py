@@ -100,8 +100,8 @@ class Simulation():  # this is where we will make them interact
         for _ in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
-                particle.update_x(particle.vx)
-                particle.update_y(particle.vy)
+                particle.update_x(particle.x + particle.vx)
+                particle.update_y(particle.y + particle.vy)
 
             # 2. resolve whether any hit the wall and reflect them
             self.resolve_wall_collisions()
