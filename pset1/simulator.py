@@ -115,10 +115,10 @@ class Simulation():  # this is where we will make them interact
         """Draw a circle on the canvas corresponding to particle
 
         Returns the handle of the tkinter circle element"""
-        x0 = particle.x - particle.rad
-        y0 = particle.y - particle.rad
-        x1 = particle.x + particle.rad
-        y1 = particle.y + particle.rad
+        x0 = particle.x - particle.radius
+        y0 = particle.y - particle.radius
+        x1 = particle.x + particle.radius
+        y1 = particle.y + particle.radius
         return self.canvas.create_oval(x0, y0, x1, y1, fill='black', outline='black')
 
     def _move_particle(self, particle):
