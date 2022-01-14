@@ -1,5 +1,5 @@
 import numpy as np
-import tkinter as tk           # simple gui package for python
+import tkinter as tk
 import matplotlib.pyplot as plt
 
 
@@ -75,8 +75,8 @@ class Simulation():  # this is where we will make them interact
 
         self.canvas = None
         self.root = None
-        
-        self._init_visualization()
+
+        # self._init_visualization()
 
     def _init_visualization(self):
         self.root = tk.Tk()
@@ -114,14 +114,14 @@ class Simulation():  # this is where we will make them interact
         for _ in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
-                particle.update_x(particle.vx)
-                particle.update_y(particle.vy)
+                particle.update_x(particle.x + particle.vx)
+                particle.update_y(particle.y + particle.vy)
 
             # 2. resolve whether any hit the wall and reflect them
             self.resolve_wall_collisions()
 
             # 3. resolve any particle collisions and transfer momentum
-            self.resolve_particle_collisions()
+            # self.resolve_particle_collisions()
 
     def plot_snapshot(self):
         fig, ax = plt.subplots(figsize=(10, 10))
@@ -137,7 +137,7 @@ class Simulation():  # this is where we will make them interact
 
         ax.axis("off")
 
-        plt.show()
+        plt.show(block=False)
 
     def get_velocities(self):
         raise NotImplementedError
