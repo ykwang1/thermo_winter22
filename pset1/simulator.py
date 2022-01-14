@@ -3,28 +3,34 @@ import tkinter as tk           # simple gui package for python
 
 
 class particle():
-    def __init__(self, size, init_v=5, rad=3):
+    def __init__(self, size, init_ke=5, radius=3, mass=1):
         """Initialise the particles
 
         Parameters
         ----------
         size : int
             Size of the box
-        init_v : int, optional
-            Initial velocity for particles, by default 5
-        rad : int, optional
-            Radius of each particle, by default 3
+        init_ke : int, optional
+            Initial kinetic energy for the particle, by default 5
+        radius : int, optional
+            Radius of the particle, by default 3
+        mass : int, optional
+            Mass of the particle, by default 1
         """
         # choose random x and y positions within the grid (padded by radius of particles)
-        self.x = np.random.random(0 + rad, size - rad)
-        self.y = np.random.random(0 + rad, size - rad)
+        self.x = np.random.random(0 + radius, size - radius)
+        self.y = np.random.random(0 + radius, size - radius)
+
+        # convert initial kinetic energy into a velocity
+        init_v = np.sqrt(2 * init_ke / mass)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
         self.vx = np.random.random(0, init_v)
         self.vy = np.sqrt(init_v**2 - self.vx**2)
 
-        # set the radius of the particle
-        self.rad = rad
+        # set the radius and mass of the particle
+        self.radius = radius
+        self.mass = mass
 
     def update_x(self, val):
         self.x = val
@@ -40,7 +46,7 @@ class particle():
 
 
 class Simulation():  # this is where we will make them interact
-    def __init__(self, N, E, size, rad):
+    def __init__(self, N, E, size, radius, mass):
         """Simulation class initialisation. This class handles the entire particle
         in a box thing.
 
@@ -52,16 +58,19 @@ class Simulation():  # this is where we will make them interact
             Kinetic energy to start with
         size : `int`
             Size of the box
-        rad : `int`
+        radius : `int`
             Radius of the particles
+        mass : `int`
+            Mass of the particles
         """
         self.N = N
         self.E = E
         self.size = size
-        self.rad = rad
+        self.radius = radius
+        self.mass = mass
 
         # initialise N particle classes
-        self.particles = [particle(size, E, rad) for _ in range(N)]
+        self.particles = [particle(size=size, init_ke=E, radius=radius, mass=mass) for _ in range(N)]
 
         self.canvas = None
         self.root = None
