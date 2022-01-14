@@ -20,8 +20,8 @@ class particle():
         self.y = np.random.uniform(0 + rad, size - rad)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
-        self.vx = np.random.uniform(0, init_v)
-        self.vy = np.sqrt(init_v**2 - self.vx**2)
+        self.vx = np.random.uniform(0, init_v) * np.random.choice([-1, 1])
+        self.vy = np.sqrt(init_v**2 - self.vx**2) * np.random.choice([-1, 1])
 
         # set the radius of the particle
         self.rad = rad
