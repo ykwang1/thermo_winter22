@@ -18,12 +18,12 @@ class particle():
             Radius of each particle, by default 3
         """
         # choose random x and y positions within the grid (padded by radius of particles)
-        self.x = np.random.random(0 + rad, size - rad)
-        self.y = np.random.random(0 + rad, size - rad)
+        self.x = np.random.uniform(0 + rad, size - rad)
+        self.y = np.random.uniform(0 + rad, size - rad)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
-        self.vx = np.random.random(0, init_v)
-        self.vy = np.sqrt(init_v**2 - self.vx**2)
+        self.vx = np.random.uniform(0, init_v) * np.random.choice([-1, 1])
+        self.vy = np.sqrt(init_v**2 - self.vx**2) * np.random.choice([-1, 1])
 
         # set the radius of the particle
         self.rad = rad
@@ -116,8 +116,6 @@ class Simulation():  # this is where we will make them interact
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
                 self._move_particle(particle)
-                # particle.update_x(particle.vx)
-                # particle.update_y(particle.vy)
 
             # 2. resolve whether any hit the wall and reflect them
             # self.resolve_wall_collisions()
