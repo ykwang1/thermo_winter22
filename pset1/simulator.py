@@ -16,11 +16,11 @@ class particle():
             Radius of each particle, by default 3
         """
         # choose random x and y positions within the grid (padded by radius of particles)
-        self.x = np.random.random(0 + rad, size - rad)
-        self.y = np.random.random(0 + rad, size - rad)
+        self.x = np.random.uniform(0 + rad, size - rad)
+        self.y = np.random.uniform(0 + rad, size - rad)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
-        self.vx = np.random.random(0, init_v)
+        self.vx = np.random.uniform(0, init_v)
         self.vy = np.sqrt(init_v**2 - self.vx**2)
 
         # set the radius of the particle
