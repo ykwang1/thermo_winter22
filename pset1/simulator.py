@@ -26,8 +26,8 @@ class particle():
         init_v = np.sqrt(2 * init_ke / mass)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
-        self.vx = np.random.uniform(0, init_v)
-        self.vy = np.sqrt(init_v**2 - self.vx**2)
+        self.vx = np.random.uniform(0, init_v) * np.random.choice([-1, 1])
+        self.vy = np.sqrt(init_v**2 - self.vx**2) * np.random.choice([-1, 1])
 
         # set the radius and mass of the particle
         self.radius = radius
@@ -67,8 +67,6 @@ class Simulation():  # this is where we will make them interact
         self.N = N
         self.E = E
         self.size = size
-        self.radius = radius
-        self.mass = mass
 
         # initialise N particle classes
         self.particles = [particle(size=size, init_ke=E, radius=radius, mass=mass) for _ in range(N)]
@@ -132,8 +130,21 @@ class Simulation():  # this is where we will make them interact
         ax.plot([0, self.size], [0, 0], color="black", lw=3)
         ax.plot([0, self.size], [self.size, self.size], color="black", lw=3)
 
-        # add the particle
-        ax.scatter([particle.x for particle in self.particles], [particle.y for particle in self.particles])
+        # add the particles
+        x = [particle.x for particle in self.particles]
+        y = [particle.y for particle in self.particles]
+
+        # make their sizes correspond to their radius
+        s = np.array([particle.radius for particle in self.particles])
+
+        # make the colours correspond to their masses
+        c = [particle.mass for particle in self.particles]
+
+        # only do colouring when there are different masses
+        if len(set(c)) == 1:
+            ax.scatter(x, y, s=s**2, color="tab:red", edgecolors="black")
+        else:
+            ax.scatter(x, y, s=s**2, c=c, cmap="plasma_r", edgecolors="black")
 
         ax.axis("off")
 
