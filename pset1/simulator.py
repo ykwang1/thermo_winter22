@@ -1,15 +1,17 @@
 import numpy as np
 import tkinter as tk           # simple gui package for python
-
+from time import sleep
 
 class particle():
-    def __init__(self, size, init_v=5, rad=3):
+    def __init__(self, size, pid, init_v=5, rad=3):
         """Initialise the particles
 
         Parameters
         ----------
         size : int
             Size of the box
+        pid : int
+            Unique particle ID
         init_v : int, optional
             Initial velocity for particles, by default 5
         rad : int, optional
@@ -25,6 +27,9 @@ class particle():
 
         # set the radius of the particle
         self.rad = rad
+
+        # assign a particle id to each particle
+        self.pid = pid
 
     def update_x(self, val):
         self.x = val
@@ -61,32 +66,42 @@ class Simulation():  # this is where we will make them interact
         self.rad = rad
 
         # initialise N particle classes
-        self.particles = [particle(size, E, rad) for _ in range(N)]
+        self.particles = [particle(size=size, pid=i, init_v=E, rad=rad) for i in range(N)]
 
         self.canvas = None
         self.root = None
+        self.particle_handles = {}
 
         self._init_visualization()
+        self.root.update()
 
     def _init_visualization(self):
         self.root = tk.Tk()
         self.root.title("Ball Bouncer")
-        self.root.resizable(False, False)
-        self.canvas = tk.Canvas(self.root, width = self.xsize, height = self.ysize)
-        raise NotImplementedError
-
-    def _draw_circle(self, particle):
-        # center coordinates, radius
-        x0 = x - r
-        y0 = y - r
-        x1 = x + r
-        y1 = y + r
-        # return create_oval(x0, y0, x1, y1)
-
-    def visualize(self):
+        # self.root.resizable(False, False)
+        self.canvas = tk.Canvas(self.root, width = self.size, height = self.size)  #object that can plot things?
+        self.canvas.pack()
         for p in self.particles:
-            self._draw_circle(p)
-        raise NotImplementedError
+            self.particle_handles[p.pid] = self._draw_particle(p)
+            self.root.update()
+            print(f"drew {p.pid}")
+
+    def _draw_particle(self, particle): #center coordinates, radius
+        """Draw a circle on the canvas corresponding to particle
+
+        Returns the handle of the tkinter circle element"""
+        x0 = particle.x - particle.rad
+        y0 = particle.y - particle.rad
+        x1 = particle.x + particle.rad
+        y1 = particle.y + particle.rad
+        return self.canvas.create_oval(x0, y0, x1, y1, fill='black', outline='black')
+
+    def _move_particle(self, particle):
+        xx = particle.x + particle.vx
+        yy = particle.y + particle.vy
+        particle.update_x(xx)
+        particle.update_y(yy)
+        self.canvas.move(self.particle_handles[particle.pid], xx, yy)
 
     def resolve_particle_collisions(self):
         raise NotImplementedError
@@ -100,14 +115,23 @@ class Simulation():  # this is where we will make them interact
         for _ in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
-                particle.update_x(particle.vx)
-                particle.update_y(particle.vy)
+                self._move_particle(particle)
+                # particle.update_x(particle.vx)
+                # particle.update_y(particle.vy)
 
             # 2. resolve whether any hit the wall and reflect them
-            self.resolve_wall_collisions()
+            # self.resolve_wall_collisions()
 
             # 3. resolve any particle collisions and transfer momentum
-            self.resolve_particle_collisions()
+            # self.resolve_particle_collisions()
+
+            # update visualization
+            self.root.update()
 
     def get_velocities(self):
         raise NotImplementedError
+
+if __name__ == "__main__":
+    test_sim = Simulation(10, 5, 400, 2)
+    test_sim.run_simulation(steps=10)
+    sleep(10) # this is just to keep the canvas open for 10 seconds
