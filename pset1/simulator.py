@@ -150,3 +150,7 @@ class Simulation():  # this is where we will make them interact
 
     def get_velocities(self):
         raise NotImplementedError
+
+if __name__ == "__main__":
+    test_sim = Simulation(100, 5, 800, 2)
+    test_sim.run_simulation()
