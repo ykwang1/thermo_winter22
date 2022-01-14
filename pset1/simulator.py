@@ -101,9 +101,13 @@ class Simulation():  # this is where we will make them interact
         raise NotImplementedError
 
     def resolve_wall_collisions(self):
-        # check whether each particle hits the wall
-        # for each collider reflect its velocity (account for ones that hit both walls)
-        raise NotImplementedError
+        """Reverse the direction of any particles that hit walls"""
+        for particle in self.particles:
+            if (particle.x + particle.radius) >= self.size or (particle.x - particle.radius) <= 0:
+                particle.vx = -particle.vx
+
+            if (particle.y + particle.radius) >= self.size or (particle.y - particle.radius) <= 0:
+                particle.vy = -particle.vy
 
     def run_simulation(self, steps=1000):
         for _ in range(steps):
