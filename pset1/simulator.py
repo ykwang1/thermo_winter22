@@ -81,7 +81,7 @@ class Simulation():  # this is where we will make them interact
         self.root = tk.Tk()
         self.root.title("Ball Bouncer")
         self.root.resizable(False, False)
-        self.canvas = tk.Canvas(self.root, width = self.xsize, height = self.ysize)
+        self.canvas = tk.Canvas(self.root, width=self.size, height=self.size)
         raise NotImplementedError
 
     def _draw_circle(self, particle):
