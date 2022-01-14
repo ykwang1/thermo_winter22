@@ -1,6 +1,6 @@
 import numpy as np
 import tkinter as tk           # simple gui package for python
-from time import sleep
+
 
 class particle():
     def __init__(self, size, pid, init_v=5, rad=3):
@@ -76,17 +76,31 @@ class Simulation():  # this is where we will make them interact
         self.root.update()
 
     def _init_visualization(self):
+        # start the visualisation box
         self.root = tk.Tk()
         self.root.title("Ball Bouncer")
-        # self.root.resizable(False, False)
-        self.canvas = tk.Canvas(self.root, width = self.size, height = self.size)  #object that can plot things?
+
+        # create a canvas with the right size
+        self.canvas = tk.Canvas(self.root, width=self.size, height=self.size)
         self.canvas.pack()
+
+        # add a close button
+        self.button = tk.Button(self.root, text='Close', command=self._quit_visualisation)
+        self.button.place(x=self.size, y=10, anchor="e")
+
+        self.timestep_message = self.canvas.create_text(self.size // 2, 10, text="Timestep = 0")
+
+        # add all of the particles
         for p in self.particles:
             self.particle_handles[p.pid] = self._draw_particle(p)
-            self.root.update()
-            print(f"drew {p.pid}")
 
-    def _draw_particle(self, particle): #center coordinates, radius
+        # update this all on the canvas
+        self.root.update()
+
+    def _quit_visualisation(self):
+        self.root.destroy()
+
+    def _draw_particle(self, particle):
         """Draw a circle on the canvas corresponding to particle
 
         Returns the handle of the tkinter circle element"""
@@ -112,7 +126,7 @@ class Simulation():  # this is where we will make them interact
         raise NotImplementedError
 
     def run_simulation(self, steps=1000):
-        for _ in range(steps):
+        for i in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
                 self._move_particle(particle)
@@ -123,13 +137,13 @@ class Simulation():  # this is where we will make them interact
             # 3. resolve any particle collisions and transfer momentum
             # self.resolve_particle_collisions()
 
-            # update visualization
-            self.root.update()
+            # update visualization with a delay
+            self.root.after(20, self.root.update())
+
+            # change the timestep message as well
+            self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
+
+        self.root.mainloop()
 
     def get_velocities(self):
         raise NotImplementedError
-
-if __name__ == "__main__":
-    test_sim = Simulation(10, 5, 400, 2)
-    test_sim.run_simulation(steps=10)
-    sleep(10) # this is just to keep the canvas open for 10 seconds
