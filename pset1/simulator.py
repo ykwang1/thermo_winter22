@@ -45,7 +45,7 @@ class particle():
 
 
 class Simulation():  # this is where we will make them interact
-    def __init__(self, N, E, size, rad):
+    def __init__(self, N, E, size, rad, delay=20):
         """Simulation class initialisation. This class handles the entire particle
         in a box thing.
 
@@ -59,11 +59,14 @@ class Simulation():  # this is where we will make them interact
             Size of the box
         rad : `int`
             Radius of the particles
+        delay : `int`
+            Delay in milliseconds between showing/running timesteps
         """
         self.N = N
         self.E = E
         self.size = size
         self.rad = rad
+        self.delay = delay
 
         # initialise N particle classes
         self.particles = [particle(size=size, pid=i, init_v=E, rad=rad) for i in range(N)]
@@ -78,7 +81,7 @@ class Simulation():  # this is where we will make them interact
     def _init_visualization(self):
         # start the visualisation box
         self.root = tk.Tk()
-        self.root.title("Ball Bouncer")
+        self.root.title("Particles in a Box!")
 
         # create a canvas with the right size
         self.canvas = tk.Canvas(self.root, width=self.size, height=self.size)
@@ -138,7 +141,7 @@ class Simulation():  # this is where we will make them interact
             # self.resolve_particle_collisions()
 
             # update visualization with a delay
-            self.root.after(20, self.root.update())
+            self.root.after(self.delay, self.root.update())
 
             # change the timestep message as well
             self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
