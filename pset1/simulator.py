@@ -118,7 +118,7 @@ class Simulation():  # this is where we will make them interact
         yy = particle.y + particle.vy
         particle.update_x(xx)
         particle.update_y(yy)
-        self.canvas.move(self.particle_handles[particle.pid], xx, yy)
+        self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
 
     def resolve_particle_collisions(self):
         raise NotImplementedError
