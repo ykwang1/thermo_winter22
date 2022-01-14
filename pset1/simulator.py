@@ -126,7 +126,7 @@ class Simulation():  # this is where we will make them interact
         yy = particle.y + particle.vy
         particle.update_x(xx)
         particle.update_y(yy)
-        self.canvas.move(self.particle_handles[particle.pid], xx, yy)
+        self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
 
     def resolve_particle_collisions(self):
         raise NotImplementedError
@@ -135,10 +135,10 @@ class Simulation():  # this is where we will make them interact
         """Reverse the direction of any particles that hit walls"""
         for particle in self.particles:
             if (particle.x + particle.radius) >= self.size or (particle.x - particle.radius) <= 0:
-                particle.vx = -particle.vx
+                particle.update_vx(-particle.vx)
 
             if (particle.y + particle.radius) >= self.size or (particle.y - particle.radius) <= 0:
-                particle.vy = -particle.vy
+                particle.update_vy(-particle.vy)
 
     def run_simulation(self, steps=1000):
         for i in range(steps):
@@ -147,7 +147,7 @@ class Simulation():  # this is where we will make them interact
                 self._move_particle(particle)
 
             # 2. resolve whether any hit the wall and reflect them
-            # self.resolve_wall_collisions()
+            self.resolve_wall_collisions()
 
             # 3. resolve any particle collisions and transfer momentum
             # self.resolve_particle_collisions()
