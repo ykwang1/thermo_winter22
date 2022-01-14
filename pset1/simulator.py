@@ -4,13 +4,15 @@ import matplotlib.pyplot as plt
 
 
 class particle():
-    def __init__(self, size, init_ke=5, radius=3, mass=1):
+    def __init__(self, size, pid, init_ke=5, radius=3, mass=1):
         """Initialise the particles
 
         Parameters
         ----------
         size : int
             Size of the box
+        pid : int
+            Unique particle ID
         init_ke : int, optional
             Initial kinetic energy for the particle, by default 5
         radius : int, optional
@@ -33,6 +35,9 @@ class particle():
         self.radius = radius
         self.mass = mass
 
+        # assign a particle id to each particle
+        self.pid = pid
+
     def update_x(self, val):
         self.x = val
 
@@ -47,7 +52,7 @@ class particle():
 
 
 class Simulation():  # this is where we will make them interact
-    def __init__(self, N, E, size, radius, mass):
+    def __init__(self, N, E, size, radius, mass, delay=20):
         """Simulation class initialisation. This class handles the entire particle
         in a box thing.
 
@@ -63,38 +68,65 @@ class Simulation():  # this is where we will make them interact
             Radius of the particles
         mass : `int`
             Mass of the particles
+        delay : `int`
+            Delay in milliseconds between showing/running timesteps
         """
         self.N = N
         self.E = E
         self.size = size
 
         # initialise N particle classes
-        self.particles = [particle(size=size, init_ke=E, radius=radius, mass=mass) for _ in range(N)]
+        self.particles = [particle(size=size, pid=i, init_ke=E, radius=radius, mass=mass) for i in range(N)]
+        self.delay = delay
 
         self.canvas = None
         self.root = None
+        self.particle_handles = {}
 
-        # self._init_visualization()
+        self._init_visualization()
+        self.root.update()
 
     def _init_visualization(self):
+        # start the visualisation box
         self.root = tk.Tk()
-        self.root.title("Ball Bouncer")
-        self.root.resizable(False, False)
+        self.root.title("Particles in a Box!")
+
+        # create a canvas with the right size
         self.canvas = tk.Canvas(self.root, width=self.size, height=self.size)
-        raise NotImplementedError
+        self.canvas.pack()
 
-    def _draw_circle(self, particle):
-        # center coordinates, radius
-        x0 = x - r
-        y0 = y - r
-        x1 = x + r
-        y1 = y + r
-        # return create_oval(x0, y0, x1, y1)
+        # add a close button
+        self.button = tk.Button(self.root, text='Close', command=self._quit_visualisation)
+        self.button.place(x=self.size, y=10, anchor="e")
 
-    def visualize(self):
+        self.timestep_message = self.canvas.create_text(self.size // 2, 10, text="Timestep = 0")
+
+        # add all of the particles
         for p in self.particles:
-            self._draw_circle(p)
-        raise NotImplementedError
+            self.particle_handles[p.pid] = self._draw_particle(p)
+
+        # update this all on the canvas
+        self.root.update()
+
+    def _quit_visualisation(self):
+        self.root.destroy()
+
+    def _draw_particle(self, particle):
+        """Draw a circle on the canvas corresponding to particle
+
+        Returns the handle of the tkinter circle element"""
+        x0 = particle.x - particle.rad
+        y0 = particle.y - particle.rad
+        x1 = particle.x + particle.rad
+        y1 = particle.y + particle.rad
+        return self.canvas.create_oval(x0, y0, x1, y1, fill='black', outline='black')
+
+    def _move_particle(self, particle):
+        xx = particle.x + particle.vx
+        yy = particle.y + particle.vy
+        particle.update_x(xx)
+        particle.update_y(yy)
+        self.canvas.move(self.particle_handles[particle.pid], xx, yy)
 
     def resolve_particle_collisions(self):
         raise NotImplementedError
@@ -109,46 +141,24 @@ class Simulation():  # this is where we will make them interact
                 particle.vy = -particle.vy
 
     def run_simulation(self, steps=1000):
-        for _ in range(steps):
+        for i in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
-                particle.update_x(particle.x + particle.vx)
-                particle.update_y(particle.y + particle.vy)
+                self._move_particle(particle)
 
             # 2. resolve whether any hit the wall and reflect them
-            self.resolve_wall_collisions()
+            # self.resolve_wall_collisions()
 
             # 3. resolve any particle collisions and transfer momentum
             # self.resolve_particle_collisions()
 
-    def plot_snapshot(self):
-        fig, ax = plt.subplots(figsize=(10, 10))
+            # update visualization with a delay
+            self.root.after(self.delay, self.root.update())
 
-        # plot the box
-        ax.plot([0, 0], [0, self.size], color="black", lw=3)
-        ax.plot([self.size, self.size], [0, self.size], color="black", lw=3)
-        ax.plot([0, self.size], [0, 0], color="black", lw=3)
-        ax.plot([0, self.size], [self.size, self.size], color="black", lw=3)
+            # change the timestep message as well
+            self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
 
-        # add the particles
-        x = [particle.x for particle in self.particles]
-        y = [particle.y for particle in self.particles]
-
-        # make their sizes correspond to their radius
-        s = np.array([particle.radius for particle in self.particles])
-
-        # make the colours correspond to their masses
-        c = [particle.mass for particle in self.particles]
-
-        # only do colouring when there are different masses
-        if len(set(c)) == 1:
-            ax.scatter(x, y, s=s**2, color="tab:red", edgecolors="black")
-        else:
-            ax.scatter(x, y, s=s**2, c=c, cmap="plasma_r", edgecolors="black")
-
-        ax.axis("off")
-
-        plt.show(block=False)
+        self.root.mainloop()
 
     def get_velocities(self):
         raise NotImplementedError
