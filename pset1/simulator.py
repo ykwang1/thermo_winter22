@@ -126,7 +126,16 @@ class Simulation():  # this is where we will make them interact
     def resolve_wall_collisions(self):
         # check whether each particle hits the wall
         # for each collider reflect its velocity (account for ones that hit both walls)
-        raise NotImplementedError
+        for p in self.particles:
+            if p.x + p.vx < p.rad:
+                p.update_vx(-p.vx)
+            if p.x + p.vx > self.size - p.rad:
+                p.update_vx(-p.vx)
+            if p.y + p.vy < p.rad:
+                p.update_vy(-p.vy)
+            if p.y + p.vy > self.size - p.rad:
+                p.update_vy(-p.vy)
+        # raise NotImplementedError
 
     def run_simulation(self, steps=1000):
         for i in range(steps):
@@ -135,7 +144,7 @@ class Simulation():  # this is where we will make them interact
                 self._move_particle(particle)
 
             # 2. resolve whether any hit the wall and reflect them
-            # self.resolve_wall_collisions()
+            self.resolve_wall_collisions()
 
             # 3. resolve any particle collisions and transfer momentum
             # self.resolve_particle_collisions()
@@ -152,5 +161,5 @@ class Simulation():  # this is where we will make them interact
         raise NotImplementedError
 
 if __name__ == "__main__":
-    test_sim = Simulation(100, 5, 800, 2)
+    test_sim = Simulation(100, 5, 750, 2)
     test_sim.run_simulation()
