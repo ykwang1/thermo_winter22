@@ -50,6 +50,10 @@ class particle():
     def update_vy(self, val):
         self.vy = val
 
+    def colliding(self, other_particle):
+        distance = np.sqrt((other_particle.x - self.x)**2 + (other_particle.y - self.y)**2)
+        return distance <= self.radius + other_particle.radius
+
 
 class Simulation():  # this is where we will make them interact
     def __init__(self, N, E, size, radius, mass, delay=20):
@@ -129,7 +133,14 @@ class Simulation():  # this is where we will make them interact
         self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
 
     def resolve_particle_collisions(self):
-        raise NotImplementedError
+        not_yet_collided = set(self.particles[:])
+        for p1 in self.particles:
+            not_yet_collided.remove(p1)
+            for p2 in list(not_yet_collided):
+                if p1.colliding(p2):
+                    print(p1.pid, p2.pid, "are colliding")
+                    not_yet_collided.remove(p2)
+                    break
 
     def resolve_wall_collisions(self):
         """Reverse the direction of any particles that hit walls"""
@@ -150,7 +161,7 @@ class Simulation():  # this is where we will make them interact
             self.resolve_wall_collisions()
 
             # 3. resolve any particle collisions and transfer momentum
-            # self.resolve_particle_collisions()
+            self.resolve_particle_collisions()
 
             # update visualization with a delay
             self.root.after(self.delay, self.root.update())
