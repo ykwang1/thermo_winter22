@@ -1,6 +1,6 @@
 import numpy as np
 import tkinter as tk           # simple gui package for python
-
+import matplotlib.pyplot as plt
 
 class particle():
     def __init__(self, size, pid, init_v=5, rad=3):
@@ -120,8 +120,31 @@ class Simulation():  # this is where we will make them interact
         particle.update_y(yy)
         self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
 
+    def _collision(self, particle1, particle2):
+        if (particle1.x - particle2.x) ** 2 + (particle1.y - particle2.y) ** 2 < (particle1.rad + particle2.rad) ** 2:
+            return True
+        return False
+
     def resolve_particle_collisions(self):
-        raise NotImplementedError
+        for p1_ind in range(len(self.particles)):
+            for p2_ind in range (p1_ind + 1, self.N):
+                if self._collision(self.particles[p1_ind], self.particles[p2_ind]):
+                    pos1 = np.array([self.particles[p1_ind].x, self.particles[p1_ind].y])
+                    vel1 = np.array([self.particles[p1_ind].vx, self.particles[p1_ind].vy])
+                    pos2 = np.array([self.particles[p2_ind].x, self.particles[p2_ind].y])
+                    vel2 = np.array([self.particles[p2_ind].vx, self.particles[p2_ind].vy])
+
+                    dist_norm = ((pos1 - pos2)[0] ** 2 + (pos1 - pos2)[1] ** 2)
+
+                    vel1_new = vel1 - np.dot(vel1 - vel2, pos1 - pos2) * (pos1 - pos2) / dist_norm
+                    vel2_new = vel2 - np.dot(vel2 - vel1, pos2 - pos1) * (pos2 - pos1) / dist_norm
+
+                    self.particles[p1_ind].update_vx(vel1_new[0])
+                    self.particles[p1_ind].update_vy(vel1_new[1])
+                    self.particles[p2_ind].update_vx(vel2_new[0])
+                    self.particles[p2_ind].update_vy(vel2_new[1])
+
+        # raise NotImplementedError
 
     def resolve_wall_collisions(self):
         # check whether each particle hits the wall
@@ -137,17 +160,16 @@ class Simulation():  # this is where we will make them interact
                 p.update_vy(-p.vy)
         # raise NotImplementedError
 
-    def run_simulation(self, steps=1000):
+    def run_simulation(self, steps=2000):
         for i in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
                 self._move_particle(particle)
+            # 3. resolve any particle collisions and transfer momentum
+            self.resolve_particle_collisions()
 
             # 2. resolve whether any hit the wall and reflect them
             self.resolve_wall_collisions()
-
-            # 3. resolve any particle collisions and transfer momentum
-            # self.resolve_particle_collisions()
 
             # update visualization with a delay
             self.root.after(self.delay, self.root.update())
@@ -158,8 +180,12 @@ class Simulation():  # this is where we will make them interact
         self.root.mainloop()
 
     def get_velocities(self):
-        raise NotImplementedError
+        velocities = np.array([p.vx ** 2 + p.vy ** 2 for p in self.particles])
+        plt.hist(velocities)
+        plt.show()
+        np.savetxt('velocities.txt', velocities)
 
 if __name__ == "__main__":
-    test_sim = Simulation(100, 5, 750, 2)
+    test_sim = Simulation(100, 5, 750, 2, 1)
     test_sim.run_simulation()
+    test_sim.get_velocities()
