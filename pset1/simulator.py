@@ -69,7 +69,10 @@ class Simulation():  # this is where we will make them interact
         self.delay = delay
 
         # initialise N particle classes
-        self.particles = [particle(size=size, pid=i, init_v=E, rad=rad) for i in range(N)]
+        self.particles = [] # [particle(size=size, pid=i, init_v=E, rad=rad) for i in range(N)]
+        self._init_particles()
+        self.velocities = []
+        self.burnin = 500
 
         self.canvas = None
         self.root = None
@@ -77,6 +80,17 @@ class Simulation():  # this is where we will make them interact
 
         self._init_visualization()
         self.root.update()
+
+    def _init_particles(self):
+        while len(self.particles) < self.N:
+            new_particle = particle(size=self.size, pid=len(self.particles), init_v=self.E, rad=self.rad)
+            no_overlaps = True
+            for p in self.particles:
+                if self._collision(new_particle, p):
+                    no_overlaps = False
+                    break
+            if no_overlaps:
+                self.particles.append(new_particle)
 
     def _init_visualization(self):
         # start the visualisation box
@@ -133,16 +147,17 @@ class Simulation():  # this is where we will make them interact
                     vel1 = np.array([self.particles[p1_ind].vx, self.particles[p1_ind].vy])
                     pos2 = np.array([self.particles[p2_ind].x, self.particles[p2_ind].y])
                     vel2 = np.array([self.particles[p2_ind].vx, self.particles[p2_ind].vy])
+                    if np.dot(pos1 - pos2, vel1 - vel2) < 0:
 
-                    dist_norm = ((pos1 - pos2)[0] ** 2 + (pos1 - pos2)[1] ** 2)
+                        dist_norm = ((pos1 - pos2)[0] ** 2 + (pos1 - pos2)[1] ** 2)
 
-                    vel1_new = vel1 - np.dot(vel1 - vel2, pos1 - pos2) * (pos1 - pos2) / dist_norm
-                    vel2_new = vel2 - np.dot(vel2 - vel1, pos2 - pos1) * (pos2 - pos1) / dist_norm
+                        vel1_new = vel1 - np.dot(vel1 - vel2, pos1 - pos2) * (pos1 - pos2) / dist_norm
+                        vel2_new = vel2 - np.dot(vel2 - vel1, pos2 - pos1) * (pos2 - pos1) / dist_norm
 
-                    self.particles[p1_ind].update_vx(vel1_new[0])
-                    self.particles[p1_ind].update_vy(vel1_new[1])
-                    self.particles[p2_ind].update_vx(vel2_new[0])
-                    self.particles[p2_ind].update_vy(vel2_new[1])
+                        self.particles[p1_ind].update_vx(vel1_new[0])
+                        self.particles[p1_ind].update_vy(vel1_new[1])
+                        self.particles[p2_ind].update_vx(vel2_new[0])
+                        self.particles[p2_ind].update_vy(vel2_new[1])
 
         # raise NotImplementedError
 
@@ -160,7 +175,7 @@ class Simulation():  # this is where we will make them interact
                 p.update_vy(-p.vy)
         # raise NotImplementedError
 
-    def run_simulation(self, steps=2000):
+    def run_simulation(self, steps=5000, burnin=1000, save_step=250):
         for i in range(steps):
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
@@ -177,15 +192,26 @@ class Simulation():  # this is where we will make them interact
             # change the timestep message as well
             self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
 
+            # after burnin, record velocities every 500 steps
+            if (i > burnin-2) & (i%save_step):
+                self.get_velocities()
+
         self.root.mainloop()
 
     def get_velocities(self):
-        velocities = np.array([p.vx ** 2 + p.vy ** 2 for p in self.particles])
-        plt.hist(velocities)
+        velocities = np.array([p.vx ** 2 + p.vy ** 2 for p in self.particles]) ** 0.5
+        self.velocities.append(velocities)
+
+        # np.savetxt('velocities.txt', velocities)
+
+    def plot_distribution(self, save=True):
+        velocities = [v for x in self.velocities for v in x]
+        plt.hist(velocities, bins=30)
         plt.show()
-        np.savetxt('velocities.txt', velocities)
+        if save:
+            np.savetxt('velocities.txt', velocities)
 
 if __name__ == "__main__":
-    test_sim = Simulation(100, 5, 750, 2, 1)
-    test_sim.run_simulation()
-    test_sim.get_velocities()
+    test_sim = Simulation(N=100, E=10, size=600, rad=6, delay=1)
+    test_sim.run_simulation(steps=5000)
+    test_sim.plot_distribution()
