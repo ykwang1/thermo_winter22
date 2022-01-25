@@ -3,7 +3,7 @@ import tkinter as tk           # simple gui package for python
 import matplotlib.pyplot as plt
 
 class particle():
-    def __init__(self, size, pid, init_v=5, rad=3):
+    def __init__(self, size, pid, mass=1, init_E=5, rad=3):
         """Initialise the particles
 
         Parameters
@@ -12,8 +12,10 @@ class particle():
             Size of the box
         pid : int
             Unique particle ID
-        init_v : int, optional
-            Initial velocity for particles, by default 5
+        mass: int
+            Mass of the particle
+        init_E : int, optional
+            Initial energy for particles, by default 5
         rad : int, optional
             Radius of each particle, by default 3
         """
@@ -22,6 +24,7 @@ class particle():
         self.y = np.random.uniform(0 + rad, size - rad)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
+        init_v = np.sqrt(2 * mass * init_E)
         self.vx = np.random.uniform(0, init_v) * np.random.choice([-1, 1])
         self.vy = np.sqrt(init_v**2 - self.vx**2) * np.random.choice([-1, 1])
 
@@ -30,6 +33,9 @@ class particle():
 
         # assign a particle id to each particle
         self.pid = pid
+
+        # set the mass of the particle
+        self.mass = mass
 
     def update_x(self, val):
         self.x = val
@@ -45,7 +51,7 @@ class particle():
 
 
 class Simulation():  # this is where we will make them interact
-    def __init__(self, N, E, size, rad, delay=20):
+    def __init__(self, N, E, size, rad, delay=20, visualize=True):
         """Simulation class initialisation. This class handles the entire particle
         in a box thing.
 
@@ -69,21 +75,26 @@ class Simulation():  # this is where we will make them interact
         self.delay = delay
 
         # initialise N particle classes
-        self.particles = [] # [particle(size=size, pid=i, init_v=E, rad=rad) for i in range(N)]
+        self.particles = []
         self._init_particles()
         self.velocities = []
+
+        # burnin of 500 timesteps to forget initial conditions
         self.burnin = 500
 
-        self.canvas = None
-        self.root = None
-        self.particle_handles = {}
+        self.visualize = visualize
 
-        self._init_visualization()
-        self.root.update()
+        if visualize:
+            self.canvas = None
+            self.root = None
+            self.particle_handles = {}
+
+            self._init_visualization()
+            self.root.update()
 
     def _init_particles(self):
         while len(self.particles) < self.N:
-            new_particle = particle(size=self.size, pid=len(self.particles), init_v=self.E, rad=self.rad)
+            new_particle = particle(size=self.size, pid=len(self.particles), mass=1, init_E=self.E, rad=self.rad)
             no_overlaps = True
             for p in self.particles:
                 if self._collision(new_particle, p):
@@ -128,18 +139,23 @@ class Simulation():  # this is where we will make them interact
         return self.canvas.create_oval(x0, y0, x1, y1, fill='black', outline='black')
 
     def _move_particle(self, particle):
+        """Moves particle one timestep according to the current positions and velocities"""
         xx = particle.x + particle.vx
         yy = particle.y + particle.vy
         particle.update_x(xx)
         particle.update_y(yy)
-        self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
+        if self.visualize:
+            self.canvas.move(self.particle_handles[particle.pid], particle.vx, particle.vy)
 
     def _collision(self, particle1, particle2):
+        """Returns True if particle1 and particle2 are colling"""
+        # check if partcles are overlapping
         if (particle1.x - particle2.x) ** 2 + (particle1.y - particle2.y) ** 2 < (particle1.rad + particle2.rad) ** 2:
             return True
         return False
 
     def resolve_particle_collisions(self):
+        """Check every pair of particles for collisions and update vx and vy"""
         for p1_ind in range(len(self.particles)):
             for p2_ind in range (p1_ind + 1, self.N):
                 if self._collision(self.particles[p1_ind], self.particles[p2_ind]):
@@ -147,19 +163,20 @@ class Simulation():  # this is where we will make them interact
                     vel1 = np.array([self.particles[p1_ind].vx, self.particles[p1_ind].vy])
                     pos2 = np.array([self.particles[p2_ind].x, self.particles[p2_ind].y])
                     vel2 = np.array([self.particles[p2_ind].vx, self.particles[p2_ind].vy])
-                    if np.dot(pos1 - pos2, vel1 - vel2) < 0:
+                    m1 = self.particles[p1_ind].mass
+                    m2 = self.particles[p2_ind].mass
 
+                    # check if particles are moving toward each other
+                    if np.dot(pos1 - pos2, vel1 - vel2) < 0:
                         dist_norm = ((pos1 - pos2)[0] ** 2 + (pos1 - pos2)[1] ** 2)
 
-                        vel1_new = vel1 - np.dot(vel1 - vel2, pos1 - pos2) * (pos1 - pos2) / dist_norm
-                        vel2_new = vel2 - np.dot(vel2 - vel1, pos2 - pos1) * (pos2 - pos1) / dist_norm
+                        vel1_new = vel1 - 2 * m2 / (m1 + m2) * np.dot(vel1 - vel2, pos1 - pos2) * (pos1 - pos2) / dist_norm
+                        vel2_new = vel2 - 2 * m1 / (m1 + m2) * np.dot(vel2 - vel1, pos2 - pos1) * (pos2 - pos1) / dist_norm
 
                         self.particles[p1_ind].update_vx(vel1_new[0])
                         self.particles[p1_ind].update_vy(vel1_new[1])
                         self.particles[p2_ind].update_vx(vel2_new[0])
                         self.particles[p2_ind].update_vy(vel2_new[1])
-
-        # raise NotImplementedError
 
     def resolve_wall_collisions(self):
         # check whether each particle hits the wall
@@ -173,7 +190,6 @@ class Simulation():  # this is where we will make them interact
                 p.update_vy(-p.vy)
             if p.y + p.vy > self.size - p.rad:
                 p.update_vy(-p.vy)
-        # raise NotImplementedError
 
     def run_simulation(self, steps=5000, burnin=1000, save_step=250):
         for i in range(steps):
@@ -185,33 +201,34 @@ class Simulation():  # this is where we will make them interact
 
             # 2. resolve whether any hit the wall and reflect them
             self.resolve_wall_collisions()
+            if self.visualize:
+                # update visualization with a delay
+                self.root.after(self.delay, self.root.update())
 
-            # update visualization with a delay
-            self.root.after(self.delay, self.root.update())
+                # change the timestep message as well
+                self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
 
-            # change the timestep message as well
-            self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
-
-            # after burnin, record velocities every 500 steps
+            # after burnin, record velocities every %save_step steps
             if (i > burnin-2) & (i%save_step):
                 self.get_velocities()
-
-        self.root.mainloop()
+        if self.visualize:
+            self.root.mainloop()
 
     def get_velocities(self):
+        """Records the instantaneous absolute velocities of all particles"""
         velocities = np.array([p.vx ** 2 + p.vy ** 2 for p in self.particles]) ** 0.5
         self.velocities.append(velocities)
 
-        # np.savetxt('velocities.txt', velocities)
-
-    def plot_distribution(self, save=True):
+    def plot_distribution(self, return_values=True, save=True):
         velocities = [v for x in self.velocities for v in x]
         plt.hist(velocities, bins=30)
         plt.show()
         if save:
             np.savetxt('velocities.txt', velocities)
+        if return_values:
+            return velocities
 
 if __name__ == "__main__":
-    test_sim = Simulation(N=100, E=10, size=600, rad=6, delay=1)
+    test_sim = Simulation(N=100, E=100, size=800, rad=16, delay=0, visualize=False)
     test_sim.run_simulation(steps=5000)
     test_sim.plot_distribution()
