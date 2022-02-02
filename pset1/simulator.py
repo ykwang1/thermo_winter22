@@ -1,6 +1,7 @@
 import numpy as np
 import tkinter as tk           # simple gui package for python
 import matplotlib.pyplot as plt
+from scipy.stats import ks_1samp
 
 class particle():
     def __init__(self, size, pid, mass=1, init_E=5, rad=3):
@@ -24,9 +25,7 @@ class particle():
         self.y = np.random.uniform(0 + rad, size - rad)
 
         # set random velocities for each particle (randomly distributed between x and y speed)
-        init_v = np.sqrt(2 * mass * init_E)
-        self.vx = np.random.uniform(0, init_v) * np.random.choice([-1, 1])
-        self.vy = np.sqrt(init_v**2 - self.vx**2) * np.random.choice([-1, 1])
+        self.init_velocities(mass, init_E)
 
         # set the radius of the particle
         self.rad = rad
@@ -36,6 +35,14 @@ class particle():
 
         # set the mass of the particle
         self.mass = mass
+
+    def init_velocities(self, mass, init_E):
+        vrms = np.sqrt(2 * init_E / mass)
+        self.vx = np.random.uniform(0, vrms) * np.random.choice([-1, 1])
+        self.vy = np.sqrt(vrms**2 - self.vx**2) * np.random.choice([-1, 1])
+
+    def change_mass(self, val):
+        self.mass = val
 
     def update_x(self, val):
         self.x = val
@@ -51,7 +58,7 @@ class particle():
 
 
 class Simulation():  # this is where we will make them interact
-    def __init__(self, N, E, size, rad, delay=20, visualize=True):
+    def __init__(self, N, E, size, rad, mass=1, two_mass=False, delay=20, visualize=True):
         """Simulation class initialisation. This class handles the entire particle
         in a box thing.
 
@@ -73,16 +80,38 @@ class Simulation():  # this is where we will make them interact
         self.size = size
         self.rad = rad
         self.delay = delay
+        self.mass = mass
 
         # initialise N particle classes
         self.particles = []
-        self._init_particles()
+        self._init_particles(self.mass)
         self.velocities = []
 
-        # burnin of 500 timesteps to forget initial conditions
-        self.burnin = 500
+        if two_mass:
+            for p in self.particles[:int(N/2)]:
+                p.change_mass(p.mass * 10)
+                p.init_velocities(p.mass, self.E)
 
+
+        # track wall collisions for pressure
+        self.wall_collisions = 0
+        self.wall_momentum = 0
+        self.total_time = 0
+
+        # burnin of 500 timesteps to forget initial conditions
+        # self.burnin = 500
+
+        # whether to visualize simulation
         self.visualize = visualize
+
+        # for problem 1b:
+        self.p1b = None
+
+        # for problem 3:
+        self.relaxation_time = None
+
+        # CDF of M-B for problem 3
+        self.v_cdf = lambda v: 1 - np.exp(-(v / (np.sqrt(2 * self.E / self.mass)))**2)
 
         if visualize:
             self.canvas = None
@@ -92,9 +121,9 @@ class Simulation():  # this is where we will make them interact
             self._init_visualization()
             self.root.update()
 
-    def _init_particles(self):
+    def _init_particles(self, mass):
         while len(self.particles) < self.N:
-            new_particle = particle(size=self.size, pid=len(self.particles), mass=1, init_E=self.E, rad=self.rad)
+            new_particle = particle(size=self.size, pid=len(self.particles), mass=mass, init_E=self.E, rad=self.rad)
             no_overlaps = True
             for p in self.particles:
                 if self._collision(new_particle, p):
@@ -149,8 +178,8 @@ class Simulation():  # this is where we will make them interact
 
     def _collision(self, particle1, particle2):
         """Returns True if particle1 and particle2 are colling"""
-        # check if partcles are overlapping
-        if (particle1.x - particle2.x) ** 2 + (particle1.y - particle2.y) ** 2 < (particle1.rad + particle2.rad) ** 2:
+        # check if particles are overlapping
+        if (particle1.x - particle2.x) ** 2 + (particle1.y - particle2.y) ** 2 <= (particle1.rad + particle2.rad) ** 2:
             return True
         return False
 
@@ -184,20 +213,40 @@ class Simulation():  # this is where we will make them interact
         for p in self.particles:
             if p.x + p.vx < p.rad:
                 p.update_vx(-p.vx)
+                self.wall_collisions += 1
+                self.wall_momentum += 2 * p.mass * abs(p.vx)
             if p.x + p.vx > self.size - p.rad:
                 p.update_vx(-p.vx)
+                self.wall_collisions += 1
+                self.wall_momentum += 2 * p.mass * abs(p.vx)
             if p.y + p.vy < p.rad:
                 p.update_vy(-p.vy)
+                self.wall_collisions += 1
+                self.wall_momentum += 2 * p.mass * abs(p.vy)
             if p.y + p.vy > self.size - p.rad:
                 p.update_vy(-p.vy)
+                self.wall_collisions += 1
+                self.wall_momentum += 2 * p.mass * abs(p.vy)
 
-    def run_simulation(self, steps=5000, burnin=1000, save_step=250):
-        for i in range(steps):
+
+    def run_simulation(self, steps=5000, burnin=1000, sample_cadence=100, p1b=False, p3=False, p4=False):
+        if p1b:
+            self.initial_pos = self.get_positions()
+
+
+        i = 0
+        while (i < steps) | p3:
+
+            # 0. after burnin, record velocities every %save_step steps
+            if (i > burnin-2) & (i%sample_cadence == 0):
+                self.get_velocities()
+
             # 1. update all particle positions based on current speeds
             for particle in self.particles:
                 self._move_particle(particle)
             # 3. resolve any particle collisions and transfer momentum
-            self.resolve_particle_collisions()
+            if not p4:
+                self.resolve_particle_collisions()
 
             # 2. resolve whether any hit the wall and reflect them
             self.resolve_wall_collisions()
@@ -208,27 +257,50 @@ class Simulation():  # this is where we will make them interact
                 # change the timestep message as well
                 self.canvas.itemconfig(self.timestep_message, text="Timestep = {}".format(i))
 
-            # after burnin, record velocities every %save_step steps
-            if (i > burnin-2) & (i%save_step):
-                self.get_velocities()
+            self.total_time += 1
+            i += 1
+
+            if p3:
+                if self.relaxed():
+                    self.relaxation_time = i
+                    break
+                self.last_v = self.get_velocities(return_values=True)
+
         if self.visualize:
             self.root.mainloop()
 
-    def get_velocities(self):
+    def get_positions(self):
+        """Records tghe instantaneous positions of all particles"""
+        return np.array([[p.x, p.y] for p in self.particles])
+
+    def get_velocities(self, return_values=False):
         """Records the instantaneous absolute velocities of all particles"""
         velocities = np.array([p.vx ** 2 + p.vy ** 2 for p in self.particles]) ** 0.5
+        if return_values:
+            return velocities
         self.velocities.append(velocities)
 
-    def plot_distribution(self, return_values=True, save=True):
+    def plot_distribution(self, return_values=True, save=True, plot=True):
         velocities = [v for x in self.velocities for v in x]
-        plt.hist(velocities, bins=30)
-        plt.show()
+        if plot:
+            plt.hist(velocities, bins=30)
+            plt.show()
         if save:
             np.savetxt('velocities.txt', velocities)
         if return_values:
             return velocities
 
+    def get_pressure(self):
+        return self.wall_momentum / (self.total_time) / (4 * self.size)
+
+    def relaxed(self, thres=0.1):
+        _, pvalue = ks_1samp(self.get_velocities(return_values=True), self.v_cdf)
+        if pvalue > thres:
+            return True
+        return False
+
+
 if __name__ == "__main__":
-    test_sim = Simulation(N=100, E=100, size=800, rad=16, delay=0, visualize=False)
-    test_sim.run_simulation(steps=5000)
+    test_sim = Simulation(N=100, E=100, size=800, rad=16, mass=1, two_mass=True, delay=0, visualize=True)
+    test_sim.run_simulation(steps=2500, burnin=1200)
     test_sim.plot_distribution()
